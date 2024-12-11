@@ -1,0 +1,60 @@
+<nav class="bg-[#708D81] shadow-lg">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="flex justify-between h-16">
+      <div class="flex space-x-4 items-center">
+        <a routerLink="/" class="text-white font-bold text-xl">WhatsGood</a>
+      </div>
+      <div class="flex space-x-4 items-center">
+        <!-- Show these when user is NOT logged in -->
+        <ng-container *ngIf="!(isLoggedIn$ | async)">
+          <a
+            routerLink="/login"
+            routerLinkActive="bg-[#5a7267]"
+            class="text-white px-4 py-2 rounded-md hover:bg-[#5a7267] transition-colors"
+          >
+            Login
+          </a>
+          <a
+            routerLink="/signup"
+            routerLinkActive="bg-[#5a7267]"
+            class="text-white px-4 py-2 rounded-md hover:bg-[#5a7267] transition-colors"
+          >
+            Sign Up
+          </a>
+        </ng-container>
+
+        <!-- Show these when user is logged in -->
+        <ng-container *ngIf="isLoggedIn$ | async">
+          <a
+            routerLink="/chat"
+            routerLinkActive="bg-[#5a7267]"
+            class="text-white px-4 py-2 rounded-md hover:bg-[#5a7267] transition-colors"
+          >
+            Chat
+          </a>
+          <div class="flex items-center space-x-3">
+            <div class="flex items-center gap-2">
+              <img
+                [src]="
+                  'http://localhost:8081/api/users/profile-picture/' +
+                  (currentUser$ | async)?.username
+                "
+                alt="Profile"
+                class="w-8 h-8 rounded-full object-cover border-2 border-white"
+              />
+              <span class="text-white font-medium">
+                {{ (currentUser$ | async)?.username }}
+              </span>
+            </div>
+            <button
+              (click)="logout()"
+              class="text-white px-4 py-2 rounded-md hover:bg-[#5a7267] transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</nav>

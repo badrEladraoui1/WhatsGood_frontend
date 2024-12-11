@@ -1,0 +1,52 @@
+<div
+  class="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-[#001427]"
+>
+  <div class="bg-white p-8 rounded-lg shadow-xl w-96">
+    <h2 class="text-2xl font-bold mb-6 text-[#001427]">Sign Up</h2>
+    <form [formGroup]="signupForm" (ngSubmit)="onSubmit()">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700">Username</label>
+        <input
+          type="text"
+          formControlName="username"
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#708D81] focus:ring focus:ring-[#708D81] focus:ring-opacity-50"
+        />
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700">Password</label>
+        <input
+          type="password"
+          formControlName="password"
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#708D81] focus:ring focus:ring-[#708D81] focus:ring-opacity-50"
+        />
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700"
+          >Profile Picture</label
+        >
+        <input
+          type="file"
+          accept="image/*"
+          (change)="onFileSelected($event)"
+          class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#708D81] file:text-white hover:file:bg-[#5a7267]"
+        />
+      </div>
+
+      <button
+        type="submit"
+        class="w-full bg-[#708D81] text-white py-2 px-4 rounded-md hover:bg-[#5a7267] transition-colors"
+        [disabled]="signupForm.invalid"
+      >
+        Sign Up
+      </button>
+    </form>
+    <p class="mt-4 text-center text-sm">
+      Already have an account?
+      <a routerLink="/login" class="text-[#BF0603] hover:text-[#8D0801]"
+        >Login</a
+      >
+    </p>
+  </div>
+</div>
