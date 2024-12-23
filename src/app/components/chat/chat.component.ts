@@ -75,6 +75,11 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.loadContacts();
         this.initializeWebSocket();
       }
+      // Subscribe to messages
+      this.chatService.onMessage().subscribe((messages) => {
+        console.log("Received messages:", messages); // Debug log
+        this.messages = messages;
+      });
     });
   }
 
@@ -82,18 +87,9 @@ export class ChatComponent implements OnInit, OnDestroy {
     if (this.currentUser) {
       this.chatService.connect(this.currentUser.username);
 
-      this.chatService.onMessage().subscribe((message) => {
-        this.messages.push(message);
+      this.chatService.onMessage().subscribe((messages) => {
+        this.messages = messages;
       });
-
-      this.chatService
-        .onUserStatusChange()
-        .subscribe(({ username, isOnline }) => {
-          const contact = this.contacts.find((c) => c.username === username);
-          if (contact) {
-            contact.isOnline = isOnline;
-          }
-        });
     }
   }
 
@@ -106,19 +102,9 @@ export class ChatComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadMessages(): void {
-    if (this.selectedContact && this.currentUser) {
-      this.chatService
-        .getMessageHistory(this.selectedContact.username)
-        .subscribe((messages) => {
-          this.messages = messages;
-        });
-    }
-  }
-
   selectContact(contact: User): void {
     this.selectedContact = contact;
-    this.loadMessages();
+    this.messages = []; // Clear messages when switching contacts
   }
 
   sendMessage(content: string): void {
@@ -131,6 +117,7 @@ export class ChatComponent implements OnInit, OnDestroy {
         timestamp: new Date(),
       };
 
+      console.log("Sending message:", message); // Debug log
       this.chatService.sendMessage(message);
     }
   }

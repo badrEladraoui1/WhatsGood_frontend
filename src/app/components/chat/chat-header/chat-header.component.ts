@@ -11,7 +11,10 @@ import { User } from "../../../models/user.model";
       <div class="flex items-center" *ngIf="contact">
         <div class="relative">
           <img
-            [src]="contact.profilePicture || 'assets/default-avatar.png'"
+            [src]="
+              'http://localhost:8081/api/users/profile-picture/' +
+              contact.username
+            "
             class="w-10 h-10 rounded-full object-cover"
             alt="{{ contact.username }}'s avatar"
           />

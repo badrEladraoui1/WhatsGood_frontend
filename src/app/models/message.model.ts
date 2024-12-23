@@ -1,8 +1,9 @@
-// src/app/models/message.model.ts
+// message.model.ts
 export interface Message {
-  type: "CHAT" | "JOIN" | "LEAVE"; // Updated to match your ChatMessage enum
+  type: "CHAT" | "JOIN" | "LEAVE";
   content: string;
-  sender: string; // Changed from senderId to match backend
-  receiver?: string; // Made optional, changed from receiverId
-  timestamp: Date; // or LocalDateTime if you're using that type
+  sender: string;
+  receiver?: string;
+  timestamp: Date;
+  senderProfilePicture?: string;
 }
