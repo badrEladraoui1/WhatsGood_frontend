@@ -8,6 +8,7 @@ import { ChatHeaderComponent } from "./chat-header/chat-header.component";
 import { MessageListComponent } from "./message-list/message-list.component";
 import { MessageInputComponent } from "./message-input/message-input.component";
 import { AuthService } from "../../services/auth.service";
+import { Group } from "../../models/groupe.model";
 
 @Component({
   selector: "app-chat",
@@ -36,7 +37,8 @@ import { AuthService } from "../../services/auth.service";
         <div class="mt-auto">
           <app-message-input
             (onSend)="sendMessage($event)"
-            (onAttachment)="handleAttachment()"
+            (onFile)="handleAttachment($event)"
+            (onAudioFile)="handleAudioFile($event)"
           >
           </app-message-input>
         </div>
@@ -44,9 +46,13 @@ import { AuthService } from "../../services/auth.service";
 
       <app-contacts-sidebar
         [contacts]="contacts"
+        [groups]="groups"
         [selectedContactId]="selectedContact?.id"
+        [selectedGroupId]="selectedGroup?.id"
         (onSelectContact)="selectContact($event)"
         (onNewGroup)="openNewGroupModal()"
+        (onSelectGroup)="selectGroup($event)"
+        (onCreateGroup)="createGroup($event)"
       >
       </app-contacts-sidebar>
     </div>
@@ -55,8 +61,10 @@ import { AuthService } from "../../services/auth.service";
 export class ChatComponent implements OnInit, OnDestroy {
   messages: Message[] = [];
   contacts: User[] = [];
+  groups: Group[] = [];
   selectedContact: User | null = null;
   currentUser: User | null = null;
+  selectedGroup: Group | null = null;
 
   constructor(
     private authService: AuthService,
@@ -64,6 +72,7 @@ export class ChatComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // Single subscription to handle auth and messages
     this.authService.currentUser$.subscribe((authResponse) => {
       if (authResponse) {
         this.currentUser = {
@@ -74,12 +83,8 @@ export class ChatComponent implements OnInit, OnDestroy {
         };
         this.loadContacts();
         this.initializeWebSocket();
+        this.loadGroups();
       }
-      // Subscribe to messages
-      this.chatService.onMessage().subscribe((messages) => {
-        console.log("Received messages:", messages); // Debug log
-        this.messages = messages;
-      });
     });
   }
 
@@ -87,8 +92,11 @@ export class ChatComponent implements OnInit, OnDestroy {
     if (this.currentUser) {
       this.chatService.connect(this.currentUser.username);
 
+      // Subscribe to messages once
       this.chatService.onMessage().subscribe((messages) => {
-        this.messages = messages;
+        if (this.selectedContact) {
+          this.messages = messages;
+        }
       });
     }
   }
@@ -102,28 +110,96 @@ export class ChatComponent implements OnInit, OnDestroy {
     });
   }
 
-  selectContact(contact: User): void {
-    this.selectedContact = contact;
-    this.messages = []; // Clear messages when switching contacts
+  loadGroups(): void {
+    this.chatService.getUserGroups().subscribe((groups) => {
+      this.groups = groups;
+    });
   }
 
-  sendMessage(content: string): void {
-    if (content && this.selectedContact && this.currentUser) {
-      const message: Message = {
-        type: "CHAT",
-        content,
-        sender: this.currentUser.username,
-        receiver: this.selectedContact.username,
-        timestamp: new Date(),
-      };
-
-      console.log("Sending message:", message); // Debug log
-      this.chatService.sendMessage(message);
+  selectContact(contact: User): void {
+    this.selectedContact = contact;
+    if (contact) {
+      // Load existing messages for this contact
+      this.messages = this.chatService.getMessagesForUser(contact.username);
     }
   }
 
-  handleAttachment(): void {
-    console.log("Attachment handling not implemented yet");
+  // sendMessage(content: string): void {
+  //   if (content && this.selectedContact && this.currentUser) {
+  //     console.log(`Sending message to ${this.selectedContact.username}`);
+  //     this.chatService.sendPrivateMessage(
+  //       this.selectedContact.username,
+  //       content
+  //     );
+  //   }
+  // }
+
+  sendMessage(content: string): void {
+    if (!content) return;
+    if (this.selectedContact) {
+      this.chatService.sendPrivateMessage(
+        this.selectedContact.username,
+        content
+      );
+    } else if (this.selectedGroup) {
+      this.chatService.sendGroupMessage(this.selectedGroup.id, content);
+    }
+  }
+
+  selectGroup(group: Group): void {
+    this.selectedGroup = group;
+    this.selectedContact = null;
+    if (group) {
+      this.messages = this.chatService.getMessagesForGroup(group.id);
+    }
+  }
+
+  // handleAttachment(file: File): void {
+  //   if (this.selectedContact) {
+  //     this.chatService.sendFile(file, this.selectedContact.username);
+  //   }
+  // }
+
+  handleAttachment(file: File): void {
+    if (this.selectedContact) {
+      if (file.type.startsWith("audio/")) {
+        this.chatService.sendAudioFile(file, this.selectedContact.username);
+      } else {
+        this.chatService.sendFile(file, this.selectedContact.username);
+      }
+    } else if (this.selectedGroup) {
+      if (file.type.startsWith("audio/")) {
+        this.chatService.sendAudioFile(file, this.selectedGroup.id.toString());
+      } else {
+        this.chatService.sendFile(file, this.selectedGroup.id.toString());
+      }
+    }
+  }
+
+  createGroup(groupData: {
+    name: string;
+    description: string;
+    members: string[];
+  }): void {
+    console.log("Chat component creating group:", groupData); // Add logging
+
+    this.chatService
+      .createGroup(groupData.name, groupData.description, groupData.members)
+      .subscribe(
+        (newGroup) => {
+          this.groups = [...this.groups, newGroup];
+          this.selectGroup(newGroup);
+        },
+        (error) => {
+          console.error("Error creating group:", error);
+        }
+      );
+  }
+
+  handleAudioFile(file: File): void {
+    if (this.selectedContact) {
+      this.chatService.sendAudioFile(file, this.selectedContact.username);
+    }
   }
 
   openNewGroupModal(): void {
