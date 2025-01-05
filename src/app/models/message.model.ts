@@ -1,9 +1,23 @@
-// message.model.ts
 export interface Message {
-  type: "CHAT" | "JOIN" | "LEAVE";
+  type: "CHAT" | "FILE" | "JOIN" | "LEAVE" | "GROUP_CHAT";
   content: string;
+  groupId?: number;
   sender: string;
   receiver?: string;
   timestamp: Date;
-  senderProfilePicture?: string;
+  fileName?: string;
+  fileUrl?: string;
+  fileType?: string;
+}
+
+export interface ChatMessage {
+  type: "CHAT" | "FILE" | "JOIN" | "LEAVE";
+  content: string;
+  sender: string;
+  receiver: string;
+  timestamp: Date;
+  fileName?: string;
+  fileType?: string;
+  audioUrl?: string;
+  audioType?: string;
 }
