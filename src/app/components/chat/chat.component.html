@@ -1,0 +1,35 @@
+<div class="h-[calc(100vh-4rem)] flex bg-[#001427]">
+  <div class="flex-1 flex flex-col">
+    <app-chat-header [contact]="selectedContact"></app-chat-header>
+
+    <div class="flex-1 relative">
+      <app-message-list
+        [messages]="messages"
+        [currentUser]="currentUser"
+        class="absolute inset-0"
+      >
+      </app-message-list>
+    </div>
+
+    <div class="mt-auto">
+      <app-message-input
+        (onSend)="sendMessage($event)"
+        (onFile)="handleAttachment($event)"
+        (onAudioFile)="handleAudioFile($event)"
+      >
+      </app-message-input>
+    </div>
+  </div>
+
+  <app-contacts-sidebar
+    [contacts]="contacts"
+    [groups]="groups"
+    [selectedContactId]="selectedContact?.id"
+    [selectedGroupId]="selectedGroup?.id"
+    (onSelectContact)="selectContact($event)"
+    (onNewGroup)="openNewGroupModal()"
+    (onSelectGroup)="selectGroup($event)"
+    (onCreateGroup)="createGroup($event)"
+  >
+  </app-contacts-sidebar>
+</div>

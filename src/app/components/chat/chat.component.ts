@@ -20,43 +20,7 @@ import { Group } from "../../models/groupe.model";
     MessageListComponent,
     MessageInputComponent,
   ],
-  template: `
-    <div class="h-[calc(100vh-4rem)] flex bg-[#001427]">
-      <div class="flex-1 flex flex-col">
-        <app-chat-header [contact]="selectedContact"></app-chat-header>
-
-        <div class="flex-1 relative">
-          <app-message-list
-            [messages]="messages"
-            [currentUser]="currentUser"
-            class="absolute inset-0"
-          >
-          </app-message-list>
-        </div>
-
-        <div class="mt-auto">
-          <app-message-input
-            (onSend)="sendMessage($event)"
-            (onFile)="handleAttachment($event)"
-            (onAudioFile)="handleAudioFile($event)"
-          >
-          </app-message-input>
-        </div>
-      </div>
-
-      <app-contacts-sidebar
-        [contacts]="contacts"
-        [groups]="groups"
-        [selectedContactId]="selectedContact?.id"
-        [selectedGroupId]="selectedGroup?.id"
-        (onSelectContact)="selectContact($event)"
-        (onNewGroup)="openNewGroupModal()"
-        (onSelectGroup)="selectGroup($event)"
-        (onCreateGroup)="createGroup($event)"
-      >
-      </app-contacts-sidebar>
-    </div>
-  `,
+  templateUrl: "./chat.component.html",
 })
 export class ChatComponent implements OnInit, OnDestroy {
   messages: Message[] = [];
@@ -92,10 +56,15 @@ export class ChatComponent implements OnInit, OnDestroy {
     if (this.currentUser) {
       this.chatService.connect(this.currentUser.username);
 
-      // Subscribe to messages once
       this.chatService.onMessage().subscribe((messages) => {
         if (this.selectedContact) {
-          this.messages = messages;
+          this.messages = this.chatService.getMessagesForUser(
+            this.selectedContact.username
+          );
+        } else if (this.selectedGroup) {
+          this.messages = this.chatService.getMessagesForGroup(
+            this.selectedGroup.id
+          );
         }
       });
     }
@@ -124,16 +93,6 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
   }
 
-  // sendMessage(content: string): void {
-  //   if (content && this.selectedContact && this.currentUser) {
-  //     console.log(`Sending message to ${this.selectedContact.username}`);
-  //     this.chatService.sendPrivateMessage(
-  //       this.selectedContact.username,
-  //       content
-  //     );
-  //   }
-  // }
-
   sendMessage(content: string): void {
     if (!content) return;
     if (this.selectedContact) {
@@ -142,6 +101,7 @@ export class ChatComponent implements OnInit, OnDestroy {
         content
       );
     } else if (this.selectedGroup) {
+      console.log("Sending group message to:", this.selectedGroup.id);
       this.chatService.sendGroupMessage(this.selectedGroup.id, content);
     }
   }
@@ -156,23 +116,31 @@ export class ChatComponent implements OnInit, OnDestroy {
 
   // handleAttachment(file: File): void {
   //   if (this.selectedContact) {
-  //     this.chatService.sendFile(file, this.selectedContact.username);
+  //     if (file.type.startsWith("audio/")) {
+  //       this.chatService.sendAudioFile(file, this.selectedContact.username);
+  //     } else {
+  //       this.chatService.sendFile(file, this.selectedContact.username);
+  //     }
+  //   } else if (this.selectedGroup) {
+  //     if (file.type.startsWith("audio/")) {
+  //       this.chatService.sendAudioFile(file, this.selectedGroup.id.toString());
+  //     } else {
+  //       this.chatService.sendFile(file, this.selectedGroup.id.toString());
+  //     }
   //   }
   // }
 
-  handleAttachment(file: File): void {
-    if (this.selectedContact) {
-      if (file.type.startsWith("audio/")) {
-        this.chatService.sendAudioFile(file, this.selectedContact.username);
-      } else {
-        this.chatService.sendFile(file, this.selectedContact.username);
+  async handleAttachment(file: File): Promise<void> {
+    try {
+      if (this.selectedContact) {
+        await this.chatService.sendFile(file, this.selectedContact.username);
+      } else if (this.selectedGroup) {
+        console.log("Sending file to group:", this.selectedGroup.id); // Debug log
+        await this.chatService.sendGroupFile(file, this.selectedGroup.id);
       }
-    } else if (this.selectedGroup) {
-      if (file.type.startsWith("audio/")) {
-        this.chatService.sendAudioFile(file, this.selectedGroup.id.toString());
-      } else {
-        this.chatService.sendFile(file, this.selectedGroup.id.toString());
-      }
+    } catch (error) {
+      console.error("Error handling attachment:", error);
+      // You might want to show an error message to the user here
     }
   }
 

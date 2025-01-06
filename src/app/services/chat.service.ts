@@ -59,7 +59,12 @@ export class ChatService {
       `/user/${username}/queue/group-messages`,
       (message) => {
         const receivedMessage = JSON.parse(message.body);
+        console.log("Received group message:", receivedMessage); // Debug log
         this.addMessageToGroup(receivedMessage.groupId, receivedMessage);
+        // Update messages BehaviorSubject if this is the current group
+        const currentMessages =
+          this.messagesByGroup.get(receivedMessage.groupId) || [];
+        this.messages.next(currentMessages);
       }
     );
   }
@@ -104,10 +109,17 @@ export class ChatService {
         timestamp: new Date(),
       };
 
+      console.log("Sending group message:", message); // Debug log
+
       this.stompClient.publish({
         destination: "/app/chat.group",
         body: JSON.stringify(message),
       });
+
+      // Optimistically add message to local storage
+      // this.addMessageToGroup(groupId, message);
+      // const currentMessages = this.messagesByGroup.get(groupId) || [];
+      // this.messages.next(currentMessages);
     }
   }
 
@@ -214,6 +226,44 @@ export class ChatService {
     );
   }
 
+  async sendGroupFile(file: File, groupId: number): Promise<void> {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser || !this.stompClient?.connected) return;
+
+    // First upload the file
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("sender", currentUser.username);
+    formData.append("groupId", groupId.toString());
+
+    try {
+      const response = await this.http
+        .post<{ fileUrl: string }>(
+          `${this.API_URL}/chat/upload-group`,
+          formData
+        )
+        .toPromise();
+
+      // Then send message with file info
+      const message: Message = {
+        type: "FILE",
+        content: response!.fileUrl,
+        sender: currentUser.username,
+        groupId: groupId,
+        timestamp: new Date(),
+        fileName: file.name,
+        fileType: file.type,
+      };
+
+      this.stompClient.publish({
+        destination: "/app/chat.group",
+        body: JSON.stringify(message),
+      });
+    } catch (error) {
+      console.error("Error sending file:", error);
+    }
+  }
+
   getContacts(): Observable<User[]> {
     const token = this.authService.getToken();
     if (!token) {
@@ -225,17 +275,10 @@ export class ChatService {
   }
 
   getMessagesForGroup(groupId: number): Message[] {
+    console.log("Getting messages for group:", groupId); // Debug log
+    console.log("Available messages:", this.messagesByGroup); // Debug log
     return this.messagesByGroup.get(groupId) || [];
   }
-
-  // disconnect(): void {
-  //   if (this.stompClient?.connected) {
-  //     this.stompClient.deactivate();
-  //   }
-  //   // Clear message history
-  //   this.messagesByUser.clear();
-  //   this.messages.next([]);
-  // }
 
   disconnect(): void {
     if (this.stompClient?.connected) {
